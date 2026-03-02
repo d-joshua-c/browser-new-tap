@@ -14,10 +14,12 @@ function favicon(url) {
     ph.textContent = u.hostname.replace(/^www\./, '')[0].toUpperCase();
     ph.style.background = COLORS[u.hostname.charCodeAt(0) % COLORS.length];
     wrap.append(ph);
-    const img = document.createElement('img');
-    img.onload = () => ph.replaceWith(img);
-    img.src = `${u.origin}/favicon.ico`;
-    img.onerror = () => { img.onerror = null; img.src = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=32`; };
+    if (u.protocol === 'http:' || u.protocol === 'https:') {
+      const img = document.createElement('img');
+      img.onload = () => ph.replaceWith(img);
+      img.src = `${u.origin}/favicon.ico`;
+      img.onerror = () => { img.onerror = null; img.src = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=32`; };
+    }
   } catch(e) {}
   return wrap;
 }
@@ -227,9 +229,73 @@ document.addEventListener('mouseup', e => {
 });
 document.addEventListener('click', e => { if (activeMenu && !activeMenu.contains(e.target)) closeMenu(); });
 
+function makePanel(titleText, loader) {
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  const h = document.createElement('div');
+  h.className = 'panel-title'; h.textContent = titleText;
+  const search = document.createElement('input');
+  search.className = 'panel-search'; search.placeholder = '搜索...';
+  const list = document.createElement('div');
+  list.className = 'panel-list';
+  const load = () => loader(search.value, list, load);
+  search.addEventListener('input', load);
+  load();
+  panel.append(h, search, list);
+  return panel;
+}
+
+function loadHistory(q, list, refresh) {
+  chrome.history.search({ text: q, maxResults: 100 }, items => {
+    list.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('a');
+      row.className = 'panel-row'; row.href = item.url; row.title = item.url;
+      row.append(favicon(item.url));
+      const span = document.createElement('span'); span.textContent = item.title || item.url;
+      row.append(span);
+      row.addEventListener('contextmenu', e => { e.preventDefault(); chrome.history.deleteUrl({ url: item.url }, refresh); });
+      list.append(row);
+    });
+  });
+}
+
+function loadDownloads(q, list, refresh) {
+  chrome.downloads.search({ query: q ? [q] : [], limit: 100, orderBy: ['-startTime'] }, items => {
+    list.innerHTML = '';
+    items.forEach(dl => {
+      const row = document.createElement('div');
+      row.className = 'panel-row' + (dl.state !== 'complete' ? ' dl-incomplete' : '');
+      const img = document.createElement('img');
+      img.className = 'panel-favicon';
+      chrome.downloads.getFileIcon(dl.id, { size: 32 }, url => { if (url) img.src = url; });
+      const span = document.createElement('span');
+      span.textContent = dl.filename.split(/[\\/]/).pop() || dl.url;
+      row.append(img, span);
+      if (dl.state === 'complete') row.addEventListener('click', () => chrome.downloads.open(dl.id));
+      row.addEventListener('contextmenu', e => {
+        e.preventDefault(); closeMenu();
+        const menu = document.createElement('div');
+        menu.className = 'menu';
+        menu.style.cssText = `position:fixed;top:${e.clientY}px;left:${e.clientX}px`;
+        activeMenu = menu; document.body.append(menu);
+        function mi(label, fn) {
+          const d = document.createElement('div'); d.className = 'menu-item'; d.textContent = label;
+          d.onclick = ev => { ev.stopPropagation(); closeMenu(); fn(); }; menu.append(d);
+        }
+        if (dl.state === 'complete') { mi('打开', () => chrome.downloads.open(dl.id)); mi('在文件夹中显示', () => chrome.downloads.show(dl.id)); }
+        mi('从列表移除', () => chrome.downloads.erase({ id: dl.id }, refresh));
+      });
+      list.append(row);
+    });
+  });
+}
+
 chrome.bookmarks.getTree(([rootNode]) => {
   root = { title: '主页', children: [] };
   rootNode.children.forEach(t => root.children.push(...(t.children || [])));
   stack.push(root);
   render(root);
+  const panels = document.getElementById('panels');
+  panels.append(makePanel('历史记录', loadHistory), makePanel('下载记录', loadDownloads));
 });

@@ -145,3 +145,60 @@ nav {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+#panels {
+  max-width: 1200px;
+  margin: 16px auto 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-title {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-search {
+  margin: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.panel-search:focus { border-color: #4a90e2; }
+
+.panel-list { overflow-y: auto; max-height: 360px; }
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.panel-row:last-child { border-bottom: none; }
+.panel-row:hover { background: var(--hover); }
+.panel-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.panel-row .favicon-wrap, .panel-row .favicon-ph, .panel-row img { width: 20px; height: 20px; }
+.panel-row .favicon-ph { font-size: 10px; border-radius: 4px; }
+.panel-favicon { width: 20px; height: 20px; flex-shrink: 0; }
+.dl-incomplete { opacity: 0.6; }

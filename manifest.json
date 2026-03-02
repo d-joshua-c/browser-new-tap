@@ -3,7 +3,7 @@
   "name": "Bookmark New Tab",
   "version": "1.0",
   "description": "Replace new tab with your bookmarks",
-  "permissions": ["bookmarks"],
+  "permissions": ["bookmarks", "history", "downloads", "favicon"],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   }
