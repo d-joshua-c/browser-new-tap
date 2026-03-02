@@ -2,17 +2,24 @@ const stack = [];
 const fwdStack = [];
 let root, dragSrc = null, activeMenu = null;
 
+const COLORS = ['#e74c3c','#e67e22','#2ecc71','#3498db','#9b59b6','#1abc9c','#e91e63','#f39c12'];
+
 function favicon(url) {
-  const img = document.createElement('img');
+  const wrap = document.createElement('div');
+  wrap.className = 'favicon-wrap';
   try {
     const u = new URL(url);
+    const ph = document.createElement('div');
+    ph.className = 'favicon-ph';
+    ph.textContent = u.hostname.replace(/^www\./, '')[0].toUpperCase();
+    ph.style.background = COLORS[u.hostname.charCodeAt(0) % COLORS.length];
+    wrap.append(ph);
+    const img = document.createElement('img');
+    img.onload = () => ph.replaceWith(img);
     img.src = `${u.origin}/favicon.ico`;
-    img.onerror = () => {
-      img.onerror = () => img.style.visibility = 'hidden';
-      img.src = `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`;
-    };
+    img.onerror = () => { img.onerror = null; img.src = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=32`; };
   } catch(e) {}
-  return img;
+  return wrap;
 }
 
 function closeMenu() {
