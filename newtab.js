@@ -84,6 +84,14 @@ function showEditModal({ title = '', url, onSave }) {
   });
 }
 
+function refreshAndRender(folderId) {
+  chrome.bookmarks.getSubTree(folderId, ([node]) => {
+    const idx = stack.findIndex(n => n.id === folderId);
+    if (idx !== -1) stack[idx] = node;
+    render(node);
+  });
+}
+
 function showMenu(e, child) {
   e.preventDefault(); e.stopPropagation();
   closeMenu();
@@ -103,7 +111,7 @@ function showMenu(e, child) {
 
   item('编辑', () => showEditModal({
     title: child.title, url: child.url,
-    onSave: upd => chrome.bookmarks.update(child.id, upd, () => render(current))
+    onSave: upd => chrome.bookmarks.update(child.id, upd, () => refreshAndRender(current.id))
   }));
 
   item('移动到', () => {
@@ -116,14 +124,14 @@ function showMenu(e, child) {
     folders.forEach(f => {
       const d = document.createElement('div');
       d.className = 'menu-item'; d.textContent = f.title;
-      d.onclick = ev => { ev.stopPropagation(); closeMenu(); chrome.bookmarks.move(child.id, { parentId: f.id }, () => render(current)); };
+      d.onclick = ev => { ev.stopPropagation(); closeMenu(); chrome.bookmarks.move(child.id, { parentId: f.id }, () => refreshAndRender(current.id)); };
       sub.append(d);
     });
   });
 
   item('删除', () => {
     (child.url ? chrome.bookmarks.remove : chrome.bookmarks.removeTree)
-      .call(chrome.bookmarks, child.id, () => render(current));
+      .call(chrome.bookmarks, child.id, () => refreshAndRender(current.id));
   });
 }
 
@@ -161,10 +169,10 @@ function makeCard(child) {
     if (!dragSrc || dragSrc.id === child.id) return;
     const cur = stack[stack.length - 1];
     if (!child.url) {
-      chrome.bookmarks.move(dragSrc.id, { parentId: child.id }, () => render(cur));
+      chrome.bookmarks.move(dragSrc.id, { parentId: child.id }, () => refreshAndRender(cur.id));
     } else {
       const idx = (cur.children || []).findIndex(c => c.id === child.id);
-      chrome.bookmarks.move(dragSrc.id, { parentId: cur.id, index: idx }, () => render(cur));
+      chrome.bookmarks.move(dragSrc.id, { parentId: cur.id, index: idx }, () => refreshAndRender(cur.id));
     }
     dragSrc = null;
   });
@@ -195,7 +203,7 @@ function render(node) {
   grid.addEventListener('drop', e => {
     e.preventDefault();
     if (!dragSrc) return;
-    chrome.bookmarks.move(dragSrc.id, { parentId: node.id }, () => render(node));
+    chrome.bookmarks.move(dragSrc.id, { parentId: node.id }, () => refreshAndRender(node.id));
     dragSrc = null;
   });
   (node.children || []).forEach(child => grid.append(makeCard(child)));
